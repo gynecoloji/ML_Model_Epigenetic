@@ -12,7 +12,7 @@ This project uses machine learning to predict gene expression levels from epigen
 ## Directory Structure
 ```
 ChIPseq_expression_prediction/
-├── data/
+├── data/                        # reference files also included in this folder
 │   └── expression/              # Public gene expression datasets (RNA-seq)
 ├── features/
 │   ├── extracted/               # Processed feature files from ChIP-seq data
@@ -34,8 +34,6 @@ ChIPseq_expression_prediction/
 
 #### `data/`
 - **expression/**: Contains gene expression data from public repositories (e.g., GEO, ENCODE)
-  - RNA-seq count matrices
-  - Normalized expression values (TPM, FPKM)
   - microarray normalized data
 
 #### `features/`
@@ -72,3 +70,98 @@ ChIPseq_expression_prediction/
 - **normalized_bigwig/**: Output from upstream ChIP-seq processing workflows
   - Normalized coverage tracks
   - Quality-controlled BigWig files ready for feature extraction
+
+## Data Sources
+
+### ChIP-seq Data
+- **GEO (Gene Expression Omnibus)**: Histone modification ChIP-seq datasets
+  - H3K4me3, H3K27ac, H3K4me1, H3K27me3, H3K9me3
+  - Download from: https://www.ncbi.nlm.nih.gov/Traces/study/?query_key=1&WebEnv=MCID_694730cd77b84e64e9fa6c62&o=acc_s%3Aa
+
+### Expression Data
+- **GEO (Gene Expression Omnibus)**: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE118171
+
+### Genome Annotations
+- Gene annotations (Gene_Models_Genecode_v42.gtf)
+- Genomic reference (hg38)
+- bed files generated from the gtf file
+  - 5% gene body length upstream/downstream of gene and gene body
+  - keep strand +/-
+  - keep protein-coding genes on chr1-22 and chrX
+
+## Usage & Workflow
+
+### Step 0: Create Main Directory Tree
+```python
+python dir_tree_model.py
+```
+**Determination of the Model (simple linear model, random tree regression ...)**
+
+----
+
+### Step 1: Prepare Expression Data
+
+**For Microarray Data:**
+```R
+# Run the microarray preparation script
+Rscript prepare_microarray.R
+```
+
+This script will:
+1. Download microarray data from GEO (e.g., GSE118171)
+2. Extract expression values and phenotype data
+3. Filter for samples of interest
+4. Annotate probes with Ensembl gene IDs
+5. Remove duplicates and invalid entries
+6. Generate two output files:
+   - `data/expression/gene_expression.csv` - Individual replicates
+   - `data/expression/gene_expression_merged_mean.csv` - Mean across replicates
+
+---
+
+### Step 2: Extract Features from ChIP-seq Data
+Extract quantitative features from histone modification ChIP-seq BigWig files at gene regions (promoters, gene bodies, etc.).
+
+📁 **Detailed instructions:** `features/README.md`
+
+**Input:** `results/normalized_bigwig/*.bw`  
+**Output:** `features/extracted/chip_signals_per_gene.csv`
+
+---
+
+### Step 3: Prepare Modeling Dataset
+Merge expression data with ChIP-seq features and create train/test splits.
+
+📁 **Detailed instructions:** `models/<model_name>_README.md`
+
+**Output:** 
+- `models/data/combined_data.csv`
+
+---
+
+### Step 4: Train Models
+Train machine learning models to predict expression from histone modification features.
+
+📁 **Detailed instructions:** `models/<model_name>_README.md`
+
+**Output:** `models/trained/model.pkl`
+
+---
+
+### Step 5: Evaluate Models
+Assess model performance on held-out test data and generate performance metrics.
+
+📁 **Detailed instructions:** `models/<model_name>_README.md`
+
+**Output:** `models/results/model_name/*.csv`
+
+---
+
+### Step 6: Interpret Results
+Analyze feature importance and generate visualizations to understand which histone marks drive predictions.
+
+📁 **Detailed instructions:** `models/<model_name>_README.md`
+
+**Output:** `analysis/figures/model_name/*.png`
+
+---
