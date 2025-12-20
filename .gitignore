@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (DO NOT COMMIT LARGE FILES)
+*.csv
+data/
+raw_data/
+*.bw
+*.bam
+*.sam
+*.fastq*
+*.bedGraph
+
+# Results
+outputs/
+figures/
+logs/
+
+# OS
+.DS_Store
