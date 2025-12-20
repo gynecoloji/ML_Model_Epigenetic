@@ -16,17 +16,16 @@ env/
 
 # Data (DO NOT COMMIT LARGE FILES)
 *.csv
-data/
-raw_data/
+*CEL.gz
 *.bw
 *.bam
 *.sam
 *.fastq*
+*.bed
 *.bedGraph
 
 # Results
 outputs/
-figures/
 logs/
 
 # OS
