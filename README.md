@@ -165,3 +165,21 @@ Analyze feature importance and generate visualizations to understand which histo
 **Output:** `analysis/figures/<model_name>/*.png`
 
 ---
+
+## Project Status
+
+🚧 This project is under active development.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT
+
+## Contact
+
+- **Name:** gynecoloji
+- **Email:** gynecoloji@gmail.com
+- **Institution:** University of New Mexico Comprehensive Cancer Center
