@@ -1,0 +1,16 @@
+==================================================
+FEATURE CHARACTERISTICS SUMMARY
+==================================================
+
+Total features: 1000
+
+Feature groups:
+  - H3K4me3: 200
+  - H3K4me1: 200
+  - H3K27ac: 200
+  - H3K27me3: 200
+  - H3K9me3: 200
+
+Low variance features: 0
+Scale ratio: 1.94
+Scaling needed: False

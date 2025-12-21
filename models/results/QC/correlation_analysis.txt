@@ -1,0 +1,79 @@
+==================================================
+CORRELATION ANALYSIS SUMMARY
+==================================================
+
+Top 20 features correlated with expression:
+  H3K4me3_bin11: 0.5873
+  H3K4me3_bin12: 0.5785
+  H3K27ac_bin11: 0.5761
+  H3K27ac_bin12: 0.5733
+  H3K27ac_bin13: 0.5666
+  H3K4me3_bin13: 0.5611
+  H3K27ac_bin14: 0.5545
+  H3K4me3_bin10: 0.5483
+  H3K27ac_bin15: 0.5395
+  H3K4me3_bin14: 0.5387
+  H3K27ac_bin10: 0.5302
+  H3K27ac_bin16: 0.5278
+  H3K4me3_bin15: 0.5164
+  H3K4me3_bin9: 0.5148
+  H3K27ac_bin17: 0.5147
+  H3K27ac_bin18: 0.5021
+  H3K4me3_bin16: 0.4967
+  H3K27ac_bin19: 0.4966
+  H3K27ac_bin20: 0.4893
+  H3K27ac_bin21: 0.4819
+
+Highly correlated pairs (|r| >= 0.95): 87
+
+Top 50 highly correlated pairs:
+  H3K4me3_bin1 <-> H3K4me3_bin2: 0.9677
+  H3K4me3_bin2 <-> H3K4me3_bin3: 0.9665
+  H3K4me3_bin3 <-> H3K4me3_bin4: 0.9655
+  H3K4me3_bin4 <-> H3K4me3_bin5: 0.9622
+  H3K4me3_bin5 <-> H3K4me3_bin6: 0.9558
+  H3K4me3_bin12 <-> H3K4me3_bin13: 0.9526
+  H3K4me3_bin13 <-> H3K4me3_bin14: 0.9629
+  H3K4me3_bin14 <-> H3K4me3_bin15: 0.9681
+  H3K4me3_bin15 <-> H3K4me3_bin16: 0.9716
+  H3K4me3_bin16 <-> H3K4me3_bin17: 0.9737
+  H3K4me3_bin17 <-> H3K4me3_bin18: 0.9756
+  H3K4me3_bin18 <-> H3K4me3_bin19: 0.9759
+  H3K4me3_bin19 <-> H3K4me3_bin20: 0.9771
+  H3K4me3_bin20 <-> H3K4me3_bin21: 0.9769
+  H3K4me3_bin20 <-> H3K4me3_bin22: 0.9501
+  H3K4me3_bin21 <-> H3K4me3_bin22: 0.9774
+  H3K4me3_bin21 <-> H3K4me3_bin23: 0.9509
+  H3K4me3_bin22 <-> H3K4me3_bin23: 0.9771
+  H3K4me3_bin22 <-> H3K4me3_bin24: 0.9508
+  H3K4me3_bin23 <-> H3K4me3_bin24: 0.9771
+  H3K4me3_bin23 <-> H3K4me3_bin25: 0.9527
+  H3K4me3_bin24 <-> H3K4me3_bin25: 0.9774
+  H3K4me3_bin24 <-> H3K4me3_bin26: 0.9533
+  H3K4me3_bin25 <-> H3K4me3_bin26: 0.9774
+  H3K4me3_bin25 <-> H3K4me3_bin27: 0.9529
+  H3K4me3_bin26 <-> H3K4me3_bin27: 0.9771
+  H3K4me3_bin26 <-> H3K4me3_bin28: 0.9529
+  H3K4me3_bin27 <-> H3K4me3_bin28: 0.9769
+  H3K4me3_bin27 <-> H3K4me3_bin29: 0.9516
+  H3K4me3_bin28 <-> H3K4me3_bin29: 0.9758
+  H3K4me3_bin28 <-> H3K4me3_bin30: 0.9502
+  H3K4me3_bin29 <-> H3K4me3_bin30: 0.9761
+  H3K4me3_bin29 <-> H3K4me3_bin31: 0.9512
+  H3K4me3_bin30 <-> H3K4me3_bin31: 0.9749
+  H3K4me3_bin31 <-> H3K4me3_bin32: 0.9753
+  H3K4me3_bin32 <-> H3K4me3_bin33: 0.9752
+  H3K4me3_bin33 <-> H3K4me3_bin34: 0.9741
+  H3K4me3_bin34 <-> H3K4me3_bin35: 0.9744
+  H3K4me3_bin35 <-> H3K4me3_bin36: 0.9745
+  H3K4me3_bin36 <-> H3K4me3_bin37: 0.9733
+  H3K4me3_bin37 <-> H3K4me3_bin38: 0.9728
+  H3K4me3_bin38 <-> H3K4me3_bin39: 0.9721
+  H3K4me3_bin39 <-> H3K4me3_bin40: 0.9709
+  H3K4me3_bin40 <-> H3K4me3_bin41: 0.9715
+  H3K4me3_bin41 <-> H3K4me3_bin42: 0.9701
+  H3K4me3_bin42 <-> H3K4me3_bin43: 0.9710
+  H3K4me3_bin43 <-> H3K4me3_bin44: 0.9708
+  H3K4me3_bin44 <-> H3K4me3_bin45: 0.9711
+  H3K4me3_bin45 <-> H3K4me3_bin46: 0.9697
+  H3K4me3_bin46 <-> H3K4me3_bin47: 0.9687
