@@ -91,7 +91,7 @@ python features/scripts/Sig_extract.py
 ```
 📖 Reading gene body annotations...
   ✓ Loaded genes
-  ✓ Strand distribution: {'+': 9,617, '-': 9,617}
+  ✓ Strand distribution
 
 📋 Reading sample metadata...
   ✓ Found 20 ChIP-seq samples
