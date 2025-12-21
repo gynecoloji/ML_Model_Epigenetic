@@ -90,6 +90,7 @@ ChIPseq_expression_prediction/
   - keep protein-coding genes on chr1-22 and chrX
 
 ## Usage & Workflow
+![Workflow flowchart](flowchart.png)
 
 ### Step 0: Create Main Directory Tree
 ```python
