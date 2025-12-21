@@ -23,9 +23,11 @@ ChIPseq_expression_prediction/
 │   ├── scripts/                 # Model training, assessment, and interpretation scripts
 │   ├── trained/                 # Saved trained models (.pkl, .h5, etc.)
 │   └── results/                 # Model performance tables and metrics
+│       └── QC/                     # Pre check data quality before modeling
 ├── analysis/
 │   ├── notebooks/               # Jupyter notebooks for exploratory analysis
 │   └── figures/                 # Model-related visualizations and plots
+│   └── QC/                      # Pre check data quality before modeling
 └── results/
     └── normalized_bigwig/       # Processed BigWig files from upstream workflows
 ```
@@ -137,6 +139,17 @@ Merge expression data with ChIP-seq features and create train/test splits.
 
 **Output:** 
 - `models/data/combined_data.csv`
+
+---
+
+### Step 3.1: Pre-check Data Quality
+Perform comprehensive pre-modeling data quality checks for genomic datasets
+
+📁 **Detailed instructions:** `models/Pre_Check_README.md`
+
+**Input:** `models/data/combined_data.csv`  
+**Output:** `models/results/QC/`
+            `analysis/QC/`
 
 ---
 
