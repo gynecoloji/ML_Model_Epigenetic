@@ -144,7 +144,7 @@ Train machine learning models to predict expression from histone modification fe
 
 📁 **Detailed instructions:** `models/<model_name>_README.md`
 
-**Output:** `models/trained/model.pkl`
+**Output:** `models/trained/<model_full_name>.pkl`
 
 ---
 
@@ -153,7 +153,7 @@ Assess model performance on held-out test data and generate performance metrics.
 
 📁 **Detailed instructions:** `models/<model_name>_README.md`
 
-**Output:** `models/results/model_name/*.csv`
+**Output:** `models/results/<model_name>/*.csv`
 
 ---
 
@@ -162,6 +162,6 @@ Analyze feature importance and generate visualizations to understand which histo
 
 📁 **Detailed instructions:** `models/<model_name>_README.md`
 
-**Output:** `analysis/figures/model_name/*.png`
+**Output:** `analysis/figures/<model_name>/*.png`
 
 ---
