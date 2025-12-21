@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.ensemble import RandomForestRegressor
 import joblib
+import shap
 
 
 # Load data
@@ -517,7 +518,7 @@ assessment_results = assess_rf_model(
     groups_train=groups_train,
     groups_test=groups_test,
     feature_names=bin_cols,
-    save_path="analysis/figures/"
+    save_path="analysis/figures/rf/"
 )
 joblib.dump(best_rf_model, 'models/trained/rf_model.pkl')
 
@@ -952,10 +953,643 @@ def create_rf_importance_summary(importance_matrix, mark_importance, regional_im
     print(f"  ✓ Saved: {filename}")
     plt.show()
 
+def calculate_shap_values(model, X_train, X_test, feature_names, 
+                         max_samples=1000, save_path="models/results/rf/"):
+    """
+    Calculate SHAP values for Random Forest model
+    
+    Parameters:
+    - model: Trained RandomForestRegressor
+    - X_train: Training features (for background data)
+    - X_test: Test features (to explain)
+    - feature_names: List of feature names
+    - max_samples: Max samples for background (higher = more accurate but slower)
+    - save_path: Where to save results
+    
+    Returns:
+    - explainer: SHAP TreeExplainer object
+    - shap_values: SHAP values for test set
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\n" + "="*70)
+    print("SHAP VALUE CALCULATION")
+    print("="*70)
+    
+    print(f"\nConfiguration:")
+    print(f"  Training samples: {len(X_train)}")
+    print(f"  Test samples: {len(X_test)}")
+    print(f"  Features: {len(feature_names)}")
+    print(f"  Background samples for SHAP: {min(max_samples, len(X_train))}")
+    
+    # Use subset of training data as background
+    # (full training set can be very slow for large datasets)
+    if len(X_train) > max_samples:
+        print(f"\nUsing {max_samples} random training samples as background")
+        background_idx = np.random.choice(len(X_train), max_samples, replace=False)
+        background_data = X_train[background_idx]
+    else:
+        background_data = X_train
+    
+    # Create TreeExplainer (optimized for tree-based models)
+    print("\nCreating SHAP TreeExplainer...")
+    explainer = shap.TreeExplainer(model, background_data)
+    
+    # Calculate SHAP values for test set
+    print("Calculating SHAP values for test set...")
+    print("  This may take a few minutes depending on data size...")
+    
+    start_time = time.time()
+    shap_values = explainer.shap_values(X_test)
+    elapsed = time.time() - start_time
+    
+    print(f"  ✓ SHAP calculation complete! ({elapsed:.1f} seconds)")
+    print(f"  SHAP values shape: {shap_values.shape}")
+    
+    # Save SHAP values
+    shap_df = pd.DataFrame(shap_values, columns=feature_names)
+    shap_df.to_csv(f"{save_path}shap_values.csv", index=False)
+    print(f"\n  Saved SHAP values to: {save_path}shap_values.csv")
+    
+    return explainer, shap_values
 
-# ═══════════════════════════════════════════════════════════════════════
-# USAGE EXAMPLE - Complete Feature Importance Analysis
-# ═══════════════════════════════════════════════════════════════════════
+def calculate_shap_values_parallel(model, X_train, X_test, feature_names, 
+                                   max_samples=1000, n_jobs=-1, 
+                                   save_path="models/results/rf/"):
+    """
+    Calculate SHAP values using parallel processing
+    
+    Parameters:
+    - model: Trained RandomForestRegressor
+    - X_train: Training features (for background data)
+    - X_test: Test features (to explain)
+    - feature_names: List of feature names
+    - max_samples: Max samples for background
+    - n_jobs: Number of parallel jobs (-1 = use all cores)
+    - save_path: Where to save results
+    
+    Returns:
+    - explainer: SHAP TreeExplainer object
+    - shap_values: SHAP values for test set
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\n" + "="*70)
+    print("PARALLEL SHAP VALUE CALCULATION")
+    print("="*70)
+    
+    # Determine number of cores
+    if n_jobs == -1:
+        n_cores = os.cpu_count()
+    else:
+        n_cores = min(n_jobs, os.cpu_count())
+    
+    print(f"\nConfiguration:")
+    print(f"  Training samples: {len(X_train)}")
+    print(f"  Test samples: {len(X_test)}")
+    print(f"  Features: {len(feature_names)}")
+    print(f"  CPU cores to use: {n_cores}")
+    print(f"  Background samples: {min(max_samples, len(X_train))}")
+    
+    # Prepare background data
+    if len(X_train) > max_samples:
+        print(f"\n  Using {max_samples} random training samples as background")
+        background_idx = np.random.choice(len(X_train), max_samples, replace=False)
+        background_data = X_train[background_idx]
+    else:
+        background_data = X_train
+    
+    # Create TreeExplainer
+    print("\n  Creating SHAP TreeExplainer...")
+    explainer = shap.TreeExplainer(model, background_data)
+    
+    # Calculate SHAP values with parallel processing
+    print(f"  Calculating SHAP values using {n_cores} cores...")
+    print("  This may take a few minutes...")
+    
+    start_time = time.time()
+    
+    # Split test data into chunks for parallel processing
+    chunk_size = max(1, len(X_test) // n_cores)
+    chunks = [X_test[i:i + chunk_size] for i in range(0, len(X_test), chunk_size)]
+    
+    print(f"  Split into {len(chunks)} chunks of ~{chunk_size} samples each")
+    
+    # Parallel SHAP calculation
+    from joblib import Parallel, delayed
+    
+    def calculate_chunk_shap(chunk):
+        """Calculate SHAP for a chunk of data"""
+        return explainer.shap_values(chunk)
+    
+    shap_chunks = Parallel(n_jobs=n_cores, verbose=1)(
+        delayed(calculate_chunk_shap)(chunk) for chunk in chunks
+    )
+    
+    # Combine results
+    shap_values = np.vstack(shap_chunks)
+    
+    elapsed = time.time() - start_time
+    
+    print(f"\n  ✓ SHAP calculation complete! ({elapsed:.1f} seconds)")
+    print(f"  ✓ SHAP values shape: {shap_values.shape}")
+    print(f"  ✓ Speed: {len(X_test) / elapsed:.1f} samples/second")
+    
+    # Save SHAP values
+    shap_df = pd.DataFrame(shap_values, columns=feature_names)
+    shap_df.to_csv(f"{save_path}shap_values.csv", index=False)
+    print(f"\n  Saved SHAP values to: {save_path}shap_values.csv")
+    
+    return explainer, shap_values
+
+def plot_shap_summary(shap_values, X_test, feature_names, save_path="analysis/figures/rf/"):
+    """
+    Create SHAP summary plots showing feature importance and impact direction
+    
+    Creates:
+    - Beeswarm plot: Shows feature importance + direction of impact
+    - Bar plot: Shows mean absolute SHAP values (overall importance)
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\n" + "="*70)
+    print("SHAP SUMMARY VISUALIZATIONS")
+    print("="*70)
+    
+    # Plot 1: Beeswarm plot (shows both importance and direction)
+    print("\nCreating SHAP beeswarm plot...")
+    plt.figure(figsize=(12, 10))
+    shap.summary_plot(shap_values, X_test, feature_names=feature_names, 
+                     show=False, max_display=20)
+    plt.title('SHAP Summary Plot (Beeswarm)\nTop 20 Features by Impact on Predictions', 
+             fontsize=14, fontweight='bold', pad=20)
+    plt.tight_layout()
+    filename = f"{save_path}shap_beeswarm.png"
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"  ✓ Saved: {filename}")
+    plt.show()
+    
+    # Plot 2: Bar plot (mean absolute SHAP values)
+    print("\nCreating SHAP bar plot...")
+    plt.figure(figsize=(12, 10))
+    shap.summary_plot(shap_values, X_test, feature_names=feature_names, 
+                     plot_type="bar", show=False, max_display=20)
+    plt.title('SHAP Feature Importance (Bar Plot)\nMean Absolute SHAP Values', 
+             fontsize=14, fontweight='bold', pad=20)
+    plt.tight_layout()
+    filename = f"{save_path}shap_bar.png"
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"  ✓ Saved: {filename}")
+    plt.show()
+    
+    print("\nSummary plots complete!")
+    print("  Beeswarm: Color indicates feature value (red=high, blue=low)")
+    print("  Position: Shows SHAP value (impact on prediction)")
+
+def analyze_shap_by_region(shap_values, feature_names, upstream_end, downstream_start,
+                          save_path="models/results/rf/"):
+    """
+    Analyze SHAP values by genomic region and histone mark
+    
+    Similar to feature importance regional analysis, but using SHAP values
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\n" + "="*70)
+    print("REGIONAL SHAP ANALYSIS")
+    print("="*70)
+    
+    # Create SHAP dataframe
+    shap_df = pd.DataFrame(shap_values, columns=feature_names)
+    
+    # Extract histone mark and bin info
+    shap_long = shap_df.melt(var_name='Feature', value_name='SHAP_Value')
+    shap_long['Histone_Mark'] = shap_long['Feature'].str.split('_bin').str[0]
+    shap_long['Bin'] = shap_long['Feature'].str.extract(r'_bin(\d+)')[0].astype(int)
+    
+    print(f"\n  Analyzed {len(shap_values)} predictions")
+    print(f"  Features: {len(feature_names)}")
+    print(f"  Histone marks: {shap_long['Histone_Mark'].nunique()}")
+    
+    # Calculate mean absolute SHAP by histone mark and bin
+    shap_pivot = shap_long.groupby(['Histone_Mark', 'Bin'])['SHAP_Value'].apply(
+        lambda x: np.abs(x).mean()
+    ).reset_index()
+    shap_pivot.columns = ['Histone_Mark', 'Bin', 'Mean_Abs_SHAP']
+    
+    # Create matrix: Histone_Mark × Bin
+    shap_matrix = shap_pivot.pivot(index='Histone_Mark', columns='Bin', 
+                                   values='Mean_Abs_SHAP')
+    
+    print(f"  SHAP matrix shape: {shap_matrix.shape}")
+    
+    # Define regions
+    total_bins = shap_matrix.shape[1]
+    regions = {
+        'Upstream': (1, upstream_end),
+        'TSS Region (0%-10%)': (upstream_end, 
+                                int(upstream_end + (downstream_start - upstream_end) * 0.1)),
+        'Gene Body (10%-33%)': (int(upstream_end + (downstream_start - upstream_end) * 0.1), 
+                                int(upstream_end + (downstream_start - upstream_end) * 0.33)),
+        'Gene Body (33%-66%)': (int(upstream_end + (downstream_start - upstream_end) * 0.33), 
+                                int(upstream_end + (downstream_start - upstream_end) * 0.66)),
+        'Gene Body (66%-100%)': (int(upstream_end + (downstream_start - upstream_end) * 0.66), 
+                                 downstream_start),
+        'Downstream': (downstream_start, total_bins)
+    }
+    
+    # Calculate regional SHAP
+    regional_shap = {}
+    for mark in shap_matrix.index:
+        regional_shap[mark] = {}
+        for region_name, (start, end) in regions.items():
+            region_shap = shap_matrix.loc[mark, start:end].sum()
+            regional_shap[mark][region_name] = region_shap
+    
+    regional_shap_df = pd.DataFrame(regional_shap).T
+    
+    print("\n  Regional SHAP Impact (Mean Absolute SHAP):")
+    print(regional_shap_df.round(4).to_string())
+    
+    # Save results
+    shap_matrix.to_csv(f"{save_path}shap_matrix.csv")
+    regional_shap_df.to_csv(f"{save_path}regional_shap.csv")
+    print(f"\n  Saved SHAP matrices to CSV files")
+    
+    return shap_matrix, regional_shap_df
+
+def plot_shap_heatmap(shap_matrix, upstream_end, downstream_start,
+                     save_path="analysis/figures/rf/"):
+    """
+    Create heatmap of mean absolute SHAP values across gene region
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\nCreating SHAP heatmap...")
+    
+    fig, ax = plt.subplots(figsize=(20, 6))
+    
+    sns.heatmap(shap_matrix, cmap='YlOrRd', 
+                cbar_kws={'label': 'Mean Absolute SHAP Value'},
+                xticklabels=50, yticklabels=True, ax=ax)
+    
+    # Region boundaries
+    ax.axvline(x=upstream_end, color='blue', linestyle='--', linewidth=2.5, alpha=0.8)
+    ax.axvline(x=downstream_start, color='blue', linestyle='--', linewidth=2.5, alpha=0.8)
+    
+    ax.set_xlabel('Bin Position (5% Upstream ← Gene Body → 5% Downstream)', 
+                 fontsize=14, fontweight='bold')
+    ax.set_ylabel('Histone Mark', fontsize=14, fontweight='bold')
+    ax.set_title('SHAP Value Heatmap Across Gene Region\nMean Absolute Impact on Predictions', 
+                fontsize=16, fontweight='bold', pad=20)
+    
+    # Region labels
+    ax.text(upstream_end/2, -0.5, 'Upstream\n(5%)', 
+           ha='center', fontsize=10, fontweight='bold', color='darkblue')
+    ax.text((upstream_end + downstream_start)/2, -0.5, 'Gene Body\n(100%)', 
+           ha='center', fontsize=10, fontweight='bold', color='darkgreen')
+    ax.text((downstream_start + shap_matrix.shape[1])/2, -0.5, 'Downstream\n(5%)', 
+           ha='center', fontsize=10, fontweight='bold', color='darkred')
+    
+    plt.tight_layout()
+    filename = f"{save_path}shap_heatmap.png"
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"  ✓ Saved: {filename}")
+    plt.show()
+
+
+def plot_shap_profiles(shap_matrix, upstream_end, downstream_start,
+                      save_path="analysis/figures/rf/"):
+    """
+    Plot SHAP value profiles across gene region for each histone mark
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\nCreating SHAP profiles...")
+    
+    fig, axes = plt.subplots(len(shap_matrix), 1, 
+                            figsize=(16, 3*len(shap_matrix)), sharex=True)
+    
+    if len(shap_matrix) == 1:
+        axes = [axes]
+    
+    colors = plt.cm.Set2(range(len(shap_matrix)))
+    total_bins = shap_matrix.shape[1]
+    
+    for idx, (mark, color) in enumerate(zip(shap_matrix.index, colors)):
+        ax = axes[idx]
+        
+        bins = shap_matrix.columns
+        values = shap_matrix.loc[mark].values
+        
+        # Plot profile
+        ax.fill_between(bins, 0, values, color=color, alpha=0.4)
+        ax.plot(bins, values, color=color, linewidth=2.5, alpha=0.9)
+        
+        # Region shading
+        ax.axvspan(0, upstream_end, alpha=0.1, color='blue')
+        ax.axvspan(upstream_end, downstream_start, alpha=0.1, color='green')
+        ax.axvspan(downstream_start, total_bins, alpha=0.1, color='orange')
+        
+        # Boundaries
+        ax.axvline(x=upstream_end, color='gray', linestyle=':', linewidth=2, alpha=0.7)
+        ax.axvline(x=downstream_start, color='gray', linestyle=':', linewidth=2, alpha=0.7)
+        
+        ax.set_ylabel('Mean |SHAP|', fontsize=11, fontweight='bold')
+        ax.set_title(f'{mark}', fontsize=13, fontweight='bold', loc='left')
+        ax.grid(True, alpha=0.3)
+        
+        # Statistics
+        total_shap = values.sum()
+        max_shap = values.max()
+        max_bin = bins[np.argmax(values)]
+        textstr = f'Total: {total_shap:.4f}\nMax: {max_shap:.4f} (bin {max_bin})'
+        ax.text(0.98, 0.97, textstr, transform=ax.transAxes, 
+               fontsize=9, verticalalignment='top', horizontalalignment='right',
+               bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    axes[-1].set_xlabel('Bin Position', fontsize=12, fontweight='bold')
+    plt.suptitle('SHAP Value Profiles Across Gene Region\nMean Absolute Impact on Predictions', 
+                fontsize=16, fontweight='bold', y=0.995)
+    plt.tight_layout()
+    
+    filename = f"{save_path}shap_profiles.png"
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"  ✓ Saved: {filename}")
+    plt.show()
+
+
+def plot_regional_shap(regional_shap_df, save_path="analysis/figures/rf/"):
+    """
+    Compare SHAP impact across different genomic regions
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\nPlotting regional SHAP comparison...")
+    
+    fig, ax = plt.subplots(figsize=(14, 6))
+    
+    regional_shap_df.plot(kind='bar', ax=ax, width=0.8,
+                         color=['#ff6b6b', '#feca57', '#48dbfb', 
+                                '#1dd1a1', '#ee5a6f', '#c8d6e5'])
+    
+    ax.set_xlabel('Histone Mark', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Total Mean Absolute SHAP', fontsize=12, fontweight='bold')
+    ax.set_title('Regional SHAP Impact Analysis\nWhich Regions Have Strongest Prediction Impact?', 
+                fontsize=14, fontweight='bold')
+    ax.legend(title='Gene Region', bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=9)
+    ax.grid(True, alpha=0.3, axis='y')
+    plt.xticks(rotation=45, ha='right')
+    
+    plt.tight_layout()
+    filename = f"{save_path}regional_shap.png"
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"  ✓ Saved: {filename}")
+    plt.show()
+
+def analyze_shap_by_region_sign(shap_values, feature_names, upstream_end, downstream_start,
+                          save_path="models/results/rf/"):
+    """
+    Analyze SHAP values by genomic region and histone mark
+    KEEPS SIGN: Positive = increases prediction, Negative = decreases prediction
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\n" + "="*70)
+    print("REGIONAL SHAP ANALYSIS (WITH SIGN)")
+    print("="*70)
+    
+    # Create SHAP dataframe
+    shap_df = pd.DataFrame(shap_values, columns=feature_names)
+    
+    # Extract histone mark and bin info
+    shap_long = shap_df.melt(var_name='Feature', value_name='SHAP_Value')
+    shap_long['Histone_Mark'] = shap_long['Feature'].str.split('_bin').str[0]
+    shap_long['Bin'] = shap_long['Feature'].str.extract(r'_bin(\d+)')[0].astype(int)
+    
+    print(f"\n  Analyzed {len(shap_values)} predictions")
+    print(f"  Features: {len(feature_names)}")
+    print(f"  Histone marks: {shap_long['Histone_Mark'].nunique()}")
+    
+    # Calculate MEAN SHAP (keeping sign) by histone mark and bin
+    shap_pivot = shap_long.groupby(['Histone_Mark', 'Bin'])['SHAP_Value'].mean().reset_index()
+    shap_pivot.columns = ['Histone_Mark', 'Bin', 'Mean_SHAP']
+    
+    # Create matrix: Histone_Mark × Bin
+    shap_matrix = shap_pivot.pivot(index='Histone_Mark', columns='Bin', 
+                                   values='Mean_SHAP')
+    
+    print(f"  SHAP matrix shape: {shap_matrix.shape}")
+    print(f"  SHAP range: [{shap_matrix.min().min():.4f}, {shap_matrix.max().max():.4f}]")
+    
+    # Define regions
+    total_bins = shap_matrix.shape[1]
+    regions = {
+        'Upstream': (1, upstream_end),
+        'TSS Region (0%-10%)': (upstream_end, 
+                                int(upstream_end + (downstream_start - upstream_end) * 0.1)),
+        'Gene Body (10%-33%)': (int(upstream_end + (downstream_start - upstream_end) * 0.1), 
+                                int(upstream_end + (downstream_start - upstream_end) * 0.33)),
+        'Gene Body (33%-66%)': (int(upstream_end + (downstream_start - upstream_end) * 0.33), 
+                                int(upstream_end + (downstream_start - upstream_end) * 0.66)),
+        'Gene Body (66%-100%)': (int(upstream_end + (downstream_start - upstream_end) * 0.66), 
+                                 downstream_start),
+        'Downstream': (downstream_start, total_bins)
+    }
+    
+    # Calculate regional SHAP (keeping sign)
+    regional_shap = {}
+    for mark in shap_matrix.index:
+        regional_shap[mark] = {}
+        for region_name, (start, end) in regions.items():
+            region_shap = shap_matrix.loc[mark, start:end].sum()
+            regional_shap[mark][region_name] = region_shap
+    
+    regional_shap_df = pd.DataFrame(regional_shap).T
+    
+    print("\n  Regional SHAP Impact (Mean SHAP with sign):")
+    print(regional_shap_df.round(4).to_string())
+    print("\n  Positive = increases expression, Negative = decreases expression")
+    
+    # Save results
+    shap_matrix.to_csv(f"{save_path}shap_matrix_signed.csv")
+    regional_shap_df.to_csv(f"{save_path}regional_shap_signed.csv")
+    print(f"\n  Saved SHAP matrices to CSV files")
+    
+    return shap_matrix, regional_shap_df
+
+def plot_shap_heatmap_sign(shap_matrix, upstream_end, downstream_start,
+                     save_path="analysis/figures/rf/"):
+    """
+    Create heatmap of MEAN SHAP values (with sign) across gene region
+    Uses diverging colormap: Blue = negative impact, Red = positive impact
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\nCreating SHAP heatmap (signed)...")
+    
+    fig, ax = plt.subplots(figsize=(20, 6))
+    
+    # Use diverging colormap centered at 0
+    # Blue = negative (decreases prediction), Red = positive (increases prediction)
+    vmax = max(abs(shap_matrix.min().min()), abs(shap_matrix.max().max()))
+    
+    sns.heatmap(shap_matrix, cmap='RdBu_r',  # Red-Blue reversed
+                center=0,  # Center colormap at 0
+                vmin=-vmax, vmax=vmax,  # Symmetric scale
+                cbar_kws={'label': 'Mean SHAP Value\n(Blue = Decreases | Red = Increases)'},
+                xticklabels=50, yticklabels=True, ax=ax)
+    
+    # Region boundaries
+    ax.axvline(x=upstream_end, color='black', linestyle='--', linewidth=2.5, alpha=0.8)
+    ax.axvline(x=downstream_start, color='black', linestyle='--', linewidth=2.5, alpha=0.8)
+    
+    ax.set_xlabel('Bin Position (5% Upstream ← Gene Body → 5% Downstream)', 
+                 fontsize=14, fontweight='bold')
+    ax.set_ylabel('Histone Mark', fontsize=14, fontweight='bold')
+    ax.set_title('SHAP Value Heatmap Across Gene Region\nSigned Impact on Predictions (Blue = Decreases, Red = Increases)', 
+                fontsize=16, fontweight='bold', pad=20)
+    
+    # Region labels
+    ax.text(upstream_end/2, -0.5, 'Upstream\n(5%)', 
+           ha='center', fontsize=10, fontweight='bold', color='darkblue')
+    ax.text((upstream_end + downstream_start)/2, -0.5, 'Gene Body\n(100%)', 
+           ha='center', fontsize=10, fontweight='bold', color='darkgreen')
+    ax.text((downstream_start + shap_matrix.shape[1])/2, -0.5, 'Downstream\n(5%)', 
+           ha='center', fontsize=10, fontweight='bold', color='darkred')
+    
+    plt.tight_layout()
+    filename = f"{save_path}shap_heatmap_signed.png"
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"  ✓ Saved: {filename}")
+    plt.show()
+
+def plot_shap_profiles_sign(shap_matrix, upstream_end, downstream_start,
+                      save_path="analysis/figures/rf/"):
+    """
+    Plot SHAP value profiles (with sign) across gene region
+    Shows both positive and negative impacts
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\nCreating SHAP profiles (signed)...")
+    
+    fig, axes = plt.subplots(len(shap_matrix), 1, 
+                            figsize=(16, 3*len(shap_matrix)), sharex=True)
+    
+    if len(shap_matrix) == 1:
+        axes = [axes]
+    
+    colors = plt.cm.Set2(range(len(shap_matrix)))
+    total_bins = shap_matrix.shape[1]
+    
+    for idx, (mark, color) in enumerate(zip(shap_matrix.index, colors)):
+        ax = axes[idx]
+        
+        bins = shap_matrix.columns
+        values = shap_matrix.loc[mark].values
+        
+        # Plot profile with positive/negative fill
+        # Positive values (increase prediction)
+        ax.fill_between(bins, 0, values, where=(values >= 0), 
+                        color='red', alpha=0.4, label='Positive (↑ expression)')
+        # Negative values (decrease prediction)
+        ax.fill_between(bins, 0, values, where=(values < 0), 
+                        color='blue', alpha=0.4, label='Negative (↓ expression)')
+        
+        ax.plot(bins, values, color=color, linewidth=2.5, alpha=0.9)
+        
+        # Zero line
+        ax.axhline(y=0, color='black', linestyle='-', linewidth=1.5, alpha=0.5)
+        
+        # Region shading
+        ax.axvspan(0, upstream_end, alpha=0.1, color='blue')
+        ax.axvspan(upstream_end, downstream_start, alpha=0.1, color='green')
+        ax.axvspan(downstream_start, total_bins, alpha=0.1, color='orange')
+        
+        # Boundaries
+        ax.axvline(x=upstream_end, color='gray', linestyle=':', linewidth=2, alpha=0.7)
+        ax.axvline(x=downstream_start, color='gray', linestyle=':', linewidth=2, alpha=0.7)
+        
+        ax.set_ylabel('Mean SHAP', fontsize=11, fontweight='bold')
+        ax.set_title(f'{mark}', fontsize=13, fontweight='bold', loc='left')
+        ax.grid(True, alpha=0.3)
+        
+        # Statistics
+        total_pos = values[values > 0].sum()
+        total_neg = values[values < 0].sum()
+        total_shap = values.sum()
+        max_shap = values.max()
+        min_shap = values.min()
+        max_bin = bins[np.argmax(np.abs(values))]
+        
+        textstr = f'Total: {total_shap:.4f}\n'
+        textstr += f'Positive: {total_pos:.4f}\n'
+        textstr += f'Negative: {total_neg:.4f}\n'
+        textstr += f'Range: [{min_shap:.4f}, {max_shap:.4f}]'
+        
+        ax.text(0.98, 0.97, textstr, transform=ax.transAxes, 
+               fontsize=9, verticalalignment='top', horizontalalignment='right',
+               bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        
+        if idx == 0:
+            ax.legend(loc='upper left', fontsize=9)
+    
+    axes[-1].set_xlabel('Bin Position', fontsize=12, fontweight='bold')
+    plt.suptitle('SHAP Value Profiles Across Gene Region\nSigned Impact on Predictions', 
+                fontsize=16, fontweight='bold', y=0.995)
+    plt.tight_layout()
+    
+    filename = f"{save_path}shap_profiles_signed.png"
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"  ✓ Saved: {filename}")
+    plt.show()
+
+def plot_regional_shap_sign(regional_shap_df, save_path="analysis/figures/rf/"):
+    """
+    Compare SHAP impact across genomic regions (with sign)
+    Shows which regions increase vs decrease expression
+    """
+    import os
+    os.makedirs(save_path, exist_ok=True)
+    
+    print("\nPlotting regional SHAP comparison (signed)...")
+    
+    fig, ax = plt.subplots(figsize=(14, 6))
+    
+    # Use custom colors for positive/negative
+    regional_shap_df.plot(kind='bar', ax=ax, width=0.8,
+                         color=['#ff6b6b', '#feca57', '#48dbfb', 
+                                '#1dd1a1', '#ee5a6f', '#c8d6e5'])
+    
+    # Add horizontal line at 0
+    ax.axhline(y=0, color='black', linestyle='-', linewidth=2, alpha=0.7)
+    
+    ax.set_xlabel('Histone Mark', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Total Mean SHAP Value\n(Positive = ↑ Expression | Negative = ↓ Expression)', 
+                 fontsize=12, fontweight='bold')
+    ax.set_title('Regional SHAP Impact Analysis (Signed)\nWhich Regions Increase vs Decrease Expression?', 
+                fontsize=14, fontweight='bold')
+    ax.legend(title='Gene Region', bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=9)
+    ax.grid(True, alpha=0.3, axis='y')
+    plt.xticks(rotation=45, ha='right')
+    
+    plt.tight_layout()
+    filename = f"{save_path}regional_shap_signed.png"
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"  ✓ Saved: {filename}")
+    plt.show()
+
 
 # First, you need to calculate region boundaries (same as for binning)
 total_bins = len([c for c in bin_cols if c.startswith(bin_cols[0].split('_bin')[0])])
@@ -973,22 +1607,56 @@ importance_df, importance_matrix, mark_importance, regional_importance_df = anal
     feature_names=bin_cols,
     upstream_end=upstream_end,
     downstream_start=downstream_start,
-    save_path="models/results/rf"
+    save_path="models/results/rf/"
 )
 
-# Create all visualizations
+explainer, shap_values = calculate_shap_values_parallel(
+    model=best_rf_model,
+    X_train=X_train,
+    X_test=X_test,
+    feature_names=bin_cols,
+    max_samples=1000,
+    n_jobs=24,  # Use all cores (or specify like n_jobs=24)
+    save_path="models/results/rf/"
+)
+
 plot_rf_importance_heatmap(importance_matrix, upstream_end, downstream_start, 
-                           save_path="analysis/figures/rf")
+                           save_path="analysis/figures/rf/")
 
 plot_rf_importance_profiles(importance_matrix, upstream_end, downstream_start,
-                            save_path="analysis/figures/rf")
+                            save_path="analysis/figures/rf/")
 
-plot_rf_histone_mark_importance(mark_importance, save_path="analysis/figures/rf")
+plot_rf_histone_mark_importance(mark_importance, save_path="analysis/figures/rf/")
 
-plot_rf_regional_importance(regional_importance_df, save_path="analysis/figures/rf")
+plot_rf_regional_importance(regional_importance_df, save_path="analysis/figures/rf/")
 
 create_rf_importance_summary(importance_matrix, mark_importance, regional_importance_df,
-                             upstream_end, downstream_start, save_path="analysis/figures/rf")
+                             upstream_end, downstream_start, save_path="analysis/figures/rf/")
+
+# Analyze SHAP by region
+plot_shap_summary(shap_values, X_test, bin_cols, save_path="analysis/figures/rf/")
+shap_matrix, regional_shap_df = analyze_shap_by_region(
+    shap_values, bin_cols, upstream_end, downstream_start,
+    save_path="models/results/rf/"
+)
+plot_shap_heatmap(shap_matrix, upstream_end, downstream_start, 
+                 save_path="analysis/figures/rf/")
+plot_shap_profiles(shap_matrix, upstream_end, downstream_start,
+                  save_path="analysis/figures/rf/")
+plot_regional_shap(regional_shap_df, save_path="analysis/figures/rf/")
+
+# Run complete signed SHAP analysis
+shap_matrix, regional_shap_df = analyze_shap_by_region_sign(
+    shap_values, bin_cols, upstream_end, downstream_start,
+    save_path="models/results/rf/"
+)
+plot_shap_heatmap_sign(shap_matrix, upstream_end, downstream_start, 
+                 save_path="analysis/figures/rf/")
+
+plot_shap_profiles_sign(shap_matrix, upstream_end, downstream_start,
+                  save_path="analysis/figures/rf/")
+
+plot_regional_shap_sign(regional_shap_df, save_path="analysis/figures/rf/")
 
 print("\n" + "="*70)
 print("FEATURE IMPORTANCE ANALYSIS COMPLETE!")
