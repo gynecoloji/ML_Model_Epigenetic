@@ -1,0 +1,53 @@
+================================================================================
+BAGGING MODEL CONFIGURATION ASSESSMENT REPORT
+================================================================================
+
+Date: 2026-01-08 21:38:46.780975
+Dataset: 72476 observations, 1000 features
+Train set: 57980 observations (14495 genes)
+Test set: 14496 observations (3624 genes)
+
+================================================================================
+TOP PERFORMERS BY CRITERION
+================================================================================
+
+1. Highest Test R²: Config_5_LessRegularized
+   Test R² = 0.5612
+
+2. Highest Test Pearson: Config_5_LessRegularized
+   Test Pearson = 0.7503
+
+3. Best Generalization: Config_1_VeryConservative
+   R² Gap = 0.0172
+
+4. Most Consistent: Config_2_Conservative
+   R² Std = 0.0105
+
+5. Best Overall: Config_1_VeryConservative
+   Composite = 0.7719
+
+================================================================================
+OVERALL PERFORMANCE SUMMARY (Sorted by Composite Score)
+================================================================================
+
+               Configuration  Test_R2  Test_Pearson_R   R2_Gap  R2_Std_CellLines  Test_RMSE  Composite_Score_2
+   Config_1_VeryConservative 0.508147        0.716498 0.017217          0.011570   1.398300           0.771911
+       Config_2_Conservative 0.530952        0.731275 0.039027          0.010505   1.365499           0.767069
+           Config_3_Moderate 0.546827        0.741417 0.078206          0.010875   1.342192           0.752980
+          Config_6_MoreTrees 0.548155        0.742466 0.073782          0.011120   1.340224           0.749853
+           Config_4_Balanced 0.556117        0.747268 0.126944          0.011428   1.328364           0.730560
+Config_7_DeepWithConstraints 0.558996        0.749031 0.169242          0.011877   1.324049           0.717942
+    Config_5_LessRegularized 0.561235        0.750319 0.211290          0.011668   1.320683           0.685141
+
+================================================================================
+CELL LINE CONSISTENCY SUMMARY
+================================================================================
+
+               Configuration  R2_Mean_CellLines  R2_Std_CellLines  R2_Min_CellLine  R2_Max_CellLine  Pearson_Mean_CellLines  Pearson_Std_CellLines
+       Config_2_Conservative           0.530918          0.010505         0.515871         0.544840                0.731634               0.007382
+           Config_3_Moderate           0.546761          0.010875         0.532545         0.562932                0.741848               0.007328
+          Config_6_MoreTrees           0.548094          0.011120         0.533208         0.564296                0.742931               0.007515
+           Config_4_Balanced           0.556025          0.011428         0.541863         0.573770                0.747870               0.007492
+   Config_1_VeryConservative           0.508175          0.011570         0.489562         0.518378                0.716869               0.008816
+    Config_5_LessRegularized           0.561116          0.011668         0.547924         0.579883                0.750954               0.007548
+Config_7_DeepWithConstraints           0.558908          0.011877         0.544409         0.577398                0.749756               0.007910
