@@ -362,7 +362,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-**Author**: gynecoloji 
+**Author**: [Your Name]  
 **Email**: gynecoloji@gmail.com  
 **GitHub**: [https://github.com/gynecoloji](https://github.com/gynecoloji?tab=repositories)
 
@@ -378,18 +378,18 @@ If you use this code in your research, please cite:
 
 ```bibtex
 @software{gene_expression_boosting,
-  author = {gynecoloji},
+  author = {Your Name},
   title = {Gene Expression Prediction using Boosting Models},
-  year = {2026},
+  year = {2025},
   url = {https://github.com/gynecoloji/gene-expression-prediction}
 }
 ```
 
 ## 🔄 Version History
 
-- **v1.0.0** (2026-01-11): Initial release with 9 boosting configurations, 5-fold CV, and comprehensive evaluation
+- **v1.0.0** (2025-01-11): Initial release with 9 boosting configurations, 5-fold CV, and comprehensive evaluation
 
 ---
 
-**Last Updated**: January 2026
+**Last Updated**: January 2025  
 **Status**: Active Development

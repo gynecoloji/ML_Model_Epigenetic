@@ -352,7 +352,7 @@ composite_score_2 = (
 
 ## 📧 Contact
 
-**Author**: gynecoloji 
+**Author**: [Your Name]  
 **Email**: gynecoloji@gmail.com  
 **GitHub**: [https://github.com/gynecoloji](https://github.com/gynecoloji?tab=repositories)
 
