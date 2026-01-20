@@ -10,6 +10,11 @@ from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import randint, uniform
 import os
+from scipy.stats import pearsonr, spearmanr
+from sklearn.model_selection import GridSearchCV
+import joblib
+import json
+from datetime import datetime
 
 os.chdir("ML")
 df = pd.read_csv("models/data/combined_data.csv")
@@ -216,7 +221,6 @@ for model_idx, (model_name, model) in enumerate(tuned_base_models.items()):
 
 print("\n✓ Out-of-fold predictions ready for meta-model!")
 
-from sklearn.model_selection import GridSearchCV
 
 # ============================================================================
 # SECTION 3.5: HYPERPARAMETER TUNING FOR META-MODEL
@@ -329,6 +333,7 @@ coefficients = meta_model.coef_
 
 for name, coef in zip(model_names, coefficients):
     print(f"{name:15s}: {coef:7.4f}")
+
 print(f"\nIntercept:      {meta_model.intercept_:.4f}")
 print(f"Alpha (tuned):  {best_alpha}")
 print("="*60)
@@ -345,7 +350,7 @@ stacked_results = {
     'alpha': best_alpha
 }
 
-from scipy.stats import pearsonr, spearmanr
+
 
 # ============================================================================
 # SECTION 5: EVALUATE INDIVIDUAL MODELS ON TEST SET
@@ -400,16 +405,13 @@ print("="*60)
 # SECTION 6: SAVE MODELS AND RESULTS
 # ============================================================================
 
-import joblib
-import json
-from datetime import datetime
 
 print("\n" + "="*60)
 print("SAVING MODELS AND RESULTS")
 print("="*60)
 
 # Create save directory
-save_dir = "models/saved_ensemble"
+save_dir = "models/results/stacking"
 os.makedirs(save_dir, exist_ok=True)
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -773,7 +775,7 @@ def predict_ensemble(X_new):
 readme_path = os.path.join(experiment_dir, "README.md")
 with open(readme_path, 'w') as f:
     f.write(readme_content)
-print(f"   ✓ Saved: README.md")
+
 
 # ============================================================================
 # SAVE SUMMARY
