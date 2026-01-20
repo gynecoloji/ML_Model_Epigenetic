@@ -464,7 +464,7 @@ best_params['meta_model'] = {'alpha': best_alpha}
 best_params_path = os.path.join(experiment_dir, "best_parameters.json")
 with open(best_params_path, 'w') as f:
     json.dump(best_params, f, indent=4)
-print(f"   ✓ Saved: best_parameters.json")
+
 
 # ----------------------------------------------------------------------------
 # 6.4: Save Predictions
@@ -565,7 +565,6 @@ for cell_line in df['cell_line'].unique():
 metrics_path = os.path.join(experiment_dir, "performance_metrics.json")
 with open(metrics_path, 'w') as f:
     json.dump(all_metrics, f, indent=4)
-print(f"   ✓ Saved: performance_metrics.json")
 
 # ----------------------------------------------------------------------------
 # 6.7: Save Train/Test Split Indices
@@ -583,7 +582,7 @@ split_info = {
 split_path = os.path.join(experiment_dir, "train_test_split.json")
 with open(split_path, 'w') as f:
     json.dump(split_info, f, indent=4)
-print(f"   ✓ Saved: train_test_split.json")
+
 
 # ----------------------------------------------------------------------------
 # 6.8: Save Experiment Configuration
@@ -631,7 +630,6 @@ config = {
 config_path = os.path.join(experiment_dir, "experiment_config.json")
 with open(config_path, 'w') as f:
     json.dump(config, f, indent=4)
-print(f"   ✓ Saved: experiment_config.json")
 
 # ----------------------------------------------------------------------------
 # 6.9: Create Performance Summary CSV

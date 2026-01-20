@@ -1,0 +1,47 @@
+{
+    "experiment_name": "stacking_ensemble_20260119_183731",
+    "timestamp": "20260119_183731",
+    "dataset": {
+        "source_file": "models/data/combined_data.csv",
+        "total_samples": 72476,
+        "train_samples": 57980,
+        "test_samples": 14496,
+        "n_features": 1000,
+        "n_genes": 18119,
+        "cell_lines": [
+            "HeyA8",
+            "OVCA429",
+            "PEO1",
+            "SKOV3"
+        ],
+        "train_test_ratio": "80/20"
+    },
+    "cross_validation": {
+        "method": "GroupKFold",
+        "n_folds": 5,
+        "grouping_variable": "gene_id"
+    },
+    "base_models": {
+        "count": 5,
+        "names": [
+            "RandomForest",
+            "XGBoost",
+            "LightGBM",
+            "ElasticNet",
+            "Ridge"
+        ],
+        "tuning_method": "RandomizedSearchCV",
+        "tuning_iterations": 20
+    },
+    "meta_model": {
+        "type": "Ridge",
+        "alpha": 50.0,
+        "tuning_method": "GridSearchCV"
+    },
+    "performance_summary": {
+        "stacked_r2": 0.5948378410070724,
+        "stacked_rmse": 1.269103798283539,
+        "best_individual_r2": 0.5872349559418344,
+        "improvement_percent": 1.294692182117144
+    }
+}
