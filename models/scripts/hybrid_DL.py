@@ -969,7 +969,7 @@ def train_model(model, train_loader, val_loader, model_name,
     # Best model tracking
     best_val_loss = float('inf')
     best_epoch = 0
-    checkpoint_path = f"models/{model_name}_best.pt"
+    checkpoint_path = f"models/trained/hybrid_DL/{model_name}_best.pt"
     
     # Start training
     start_time = time.time()
